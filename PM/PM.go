@@ -2,7 +2,6 @@ package main
 
 import (
 	"math"
-	"math/cmplx"
 	"math/rand"
 	"time"
 
@@ -60,7 +59,7 @@ func main() {
 	//if max is 10 min is -5
 
 	createGraph(scene, xLength, zLength, yLength)
-	points := generateRandomCoords(20000, 0, xLength, 0, yLength, 0, zLength)
+	points := generateRandomCoords(25000, 0, xLength, 0, yLength, 0, zLength)
 	mats := plotPoints(scene, points)
 
 	// Create and add lights to the scene
@@ -75,7 +74,6 @@ func main() {
 	// Set background color to gray
 	a.Gls().ClearColor(0.5, 0.5, 0.5, 1.0)
 
-	//startTime := float64(time.Now().Unix())
 	a.Run(func(rend *renderer.Renderer, deltaTime time.Duration) {
 		// Start measuring this frame
 		rater.Start()
@@ -91,7 +89,9 @@ func main() {
 
 		var vals []float64
 		for i := 0; i < len(points); i++ {
-			vals = append(vals, points[i][2])
+			t := float64(time.Now().Unix())
+			val := calculateWaveFunction(points[i][0], points[i][1], points[i][2], t)
+			vals = append(vals, val)
 		}
 		vals = NormalizeVals(vals)
 		for i := 0; i < len(mats); i++ {
@@ -106,25 +106,12 @@ func main() {
 	})
 }
 
-func calculateWaveFunction(x, y, z, t float64) complex128 {
-	// Constants for the infinite square well problem
-	a := 15.0                   // width of the well
-	nx, ny, nz := 3.0, 3.0, 3.0 // quantum numbers for each dimension
-	hbar := 1.0545718e-34       // reduced Planck's constant
-	m := 9.10938356e-31         // mass of the particle
+func calculateWaveFunction(x, y, z, t float64) float64 {
+	var result float64
 
-	// Calculate the real part of the wave function for each dimension
-	realPartX := math.Sqrt(2/a) * math.Sin(nx*math.Pi*x/a)
-	realPartY := math.Sqrt(2/a) * math.Sin(ny*math.Pi*y/a)
-	realPartZ := math.Sqrt(2/a) * math.Sin(nz*math.Pi*z/a)
+	result = math.Sqrt(5) * math.Sin(math.Pi*(x+t)/5) * math.Sin(math.Pi*(y+t)/10) * math.Sin(math.Pi*(z+t)/5) / 25
 
-	// Calculate the imaginary part of the wave function
-	imaginaryPart := -1 * (nx*nx + ny*ny + nz*nz) * math.Pi * math.Pi * hbar * t / (2 * m * a * a)
-
-	// Combine the real and imaginary parts to get the full wave function
-	waveFunction := complex(realPartX*realPartY*realPartZ, 0) * cmplx.Exp(complex(0, imaginaryPart))
-
-	return waveFunction
+	return float64(result)
 }
 
 func createGraph(scene *core.Node, xLength, zLength, yLength float64) {
@@ -188,9 +175,9 @@ func GenerateColorOnGradient(value float64) *math32.Color {
 	}
 
 	// Interpolate between red and blue based on the input value
-	red := 1 - float32(value)
+	red := float32(0)
 	blue := float32(value)
-	green := float32(0)
+	green := 0.7 - float32(value)/2
 
 	return &math32.Color{R: red, G: green, B: blue}
 }

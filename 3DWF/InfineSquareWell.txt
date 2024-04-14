@@ -1,0 +1,88 @@
+// package main
+
+// import (
+// 	"math"
+// 	"math/cmplx"
+// )
+
+// type quantumSystem struct {
+// 	quantumNumbers        [3]int
+// 	energy                float64
+// 	wellLength            float64
+// 	reducedPlanckConstant float64
+// }
+
+// type particle struct {
+// 	position [3]float64
+// 	mass     float64
+// }
+
+// func initialiseQuantumSystem(q *quantumSystem, p *particle) {
+// 	p.mass = 9.10938356e-31 // Electron mass
+// 	p.position = [3]float64{0.0, 0.0, 0.0}
+
+// 	q.reducedPlanckConstant = 1.0545718e-34 // Planck constant divided by 2π
+// 	q.wellLength = 10e-9                    // Further increase well length
+// 	q.quantumNumbers = [3]int{2, 2, 2}
+// }
+
+// func waveFunction(q *quantumSystem, p *particle, time float64) float64 {
+// 	waveFunctionValue := 0.0
+
+// 	// if any of the positions are outside the well, return 0
+// 	for i := 0; i < 3; i++ {
+// 		if p.position[i] < 0.0 || p.position[i] > q.wellLength {
+// 			// fmt.Printf("Position outside well, position = %.6e\n", p.position[i])
+// 			return waveFunctionValue
+// 		}
+// 	}
+
+// 	time = time * 1e-9 // Convert time to nanoseconds
+// 	q.energy = math.Pow(math.Pi*q.reducedPlanckConstant, 2) / (2 * p.mass * math.Pow(q.wellLength, 2))
+
+// 	quantumNumberSquareSum := 0
+// 	for i := 0; i < 3; i++ {
+// 		quantumNumberSquareSum += q.quantumNumbers[i] * q.quantumNumbers[i]
+// 	}
+
+// 	q.energy *= float64(quantumNumberSquareSum)
+
+// 	waveFunctionValue = 2.0 * math.Sqrt(8.0/math.Pow(q.wellLength, 3))
+// 	for i := 0; i < 3; i++ {
+// 		waveFunctionValue *= math.Sin(float64(q.quantumNumbers[i]) * math.Pi * p.position[i] / q.wellLength)
+// 	}
+
+// 	timeDependentFactor := cmplx.Exp(-1i * complex(q.energy*time/q.reducedPlanckConstant, 0))
+
+// 	return cmplx.Abs(complex(waveFunctionValue, 0) * timeDependentFactor)
+// }
+
+// func genPoints(t float64) ([][]float64, []float64) {
+// 	// define quantum system and particle
+// 	q := quantumSystem{}
+// 	p := particle{}
+
+// 	initialiseQuantumSystem(&q, &p)
+
+// 	gridLength := 10e-9 // Further increase spatial dimension
+// 	divisions := 10     // Keep divisions for larger step sizes
+
+// 	xStep := float64(q.wellLength) / float64(divisions)
+// 	yStep := xStep
+// 	zStep := xStep
+
+// 	var waveFuncs []float64
+// 	var coords [][]float64
+// 	for x := 0.0; x < float64(gridLength)+xStep; x += xStep {
+// 		for y := 0.0; y < float64(gridLength)+yStep; y += yStep {
+// 			for z := 0.0; z < float64(gridLength)+zStep; z += zStep {
+// 				p.position = [3]float64{x, y, z}
+// 				waveFunctionValue := waveFunction(&q, &p, t)
+// 				waveFuncs = append(waveFuncs, waveFunctionValue)
+// 				coord := []float64{x, y, z}
+// 				coords = append(coords, coord)
+// 			}
+// 		}
+// 	}
+// 	return coords, waveFuncs
+// }

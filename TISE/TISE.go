@@ -75,7 +75,7 @@ func main() {
 	// Set background color to gray
 	a.Gls().ClearColor(0.5, 0.5, 0.5, 1.0)
 
-	//startTime := float64(time.Now().Unix())
+	startTime := float64(time.Now().Unix())
 	a.Run(func(rend *renderer.Renderer, deltaTime time.Duration) {
 		// Start measuring this frame
 		rater.Start()
@@ -91,7 +91,10 @@ func main() {
 
 		var vals []float64
 		for i := 0; i < len(points); i++ {
-			vals = append(vals, points[i][2])
+			t := float64(time.Now().Unix()) - startTime
+			t = t / (10e-34)
+			val := calculateWaveFunction(points[i][0], points[i][1], points[i][2], t)
+			vals = append(vals, imag(val)) // use real part instead of absolute value
 		}
 		vals = NormalizeVals(vals)
 		for i := 0; i < len(mats); i++ {
