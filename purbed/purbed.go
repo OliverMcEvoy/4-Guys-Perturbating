@@ -53,9 +53,9 @@ func main() {
 
 	// axis length
 	//TODO function call to set maxs
-	xLength := float64(50)
+	xLength := float64(15)
 	zLength := float64(1)
-	yLength := float64(50)
+	yLength := float64(15)
 
 	//if max is 10 min is -5
 
@@ -108,14 +108,17 @@ func calculateWaveFunction(x, y, t float64) complex128 {
 	// Constants for the infinite square well problem
 	a := 10.0             // width of the well
 	ny, nz := 1.0, 1.0    // quantum numbers for each dimension
-	hbar := 1.0545718e-34 // reduced Planck's constant
-	m := 9.10938356e-31   // mass of the particle
+	hbar := 1.0545718e-24 // reduced Planck's constant
+	m := 9.10938356e-21   // mass of the particle
+	v_0 := 6.0 * 10e-6    // potential energy of the well
 
 	// Calculate the real part of the wave function for each dimension
 	realPartX := x
 	realPartY := y
-	realPartZ := 2 / a * math.Sin(nz*math.Pi*x/a) * math.Sin(ny*math.Pi*y/a) * math.Cos(t*math.Pi*math.Pi*hbar/(m*a*a))
-
+	realPartZ := 0.0
+	if x <= 10 && y <= 10 {
+		realPartZ = ((2.0/a)*math.Sin(nz*math.Pi*x/a)*math.Sin(ny*math.Pi*y/a) - 8.0*v_0) )
+	}
 	// Calculate the imaginary part of the wave function
 	imaginaryPart := -1 * math.Sin(math.Pi*math.Pi*hbar*t/(m*a*a))
 

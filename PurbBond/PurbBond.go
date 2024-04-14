@@ -53,9 +53,9 @@ func main() {
 
 	// axis length
 	//TODO function call to set maxs
-	xLength := float64(50)
+	xLength := float64(12)
 	zLength := float64(1)
-	yLength := float64(50)
+	yLength := float64(12)
 
 	//if max is 10 min is -5
 
@@ -114,8 +114,10 @@ func calculateWaveFunction(x, y, t float64) complex128 {
 	// Calculate the real part of the wave function for each dimension
 	realPartX := x
 	realPartY := y
-	realPartZ := 2 / a * math.Sin(nz*math.Pi*x/a) * math.Sin(ny*math.Pi*y/a) * math.Cos(t*math.Pi*math.Pi*hbar/(m*a*a))
-
+	realPartZ := 0.0
+	if x <= 10 && y <= 10 {
+		realPartZ = 2 / a * math.Sin(nz*math.Pi*x/a) * math.Sin(ny*math.Pi*y/a) * math.Cos(t*math.Pi*math.Pi*hbar/(m*a*a))
+	}
 	// Calculate the imaginary part of the wave function
 	imaginaryPart := -1 * math.Sin(math.Pi*math.Pi*hbar*t/(m*a*a))
 
