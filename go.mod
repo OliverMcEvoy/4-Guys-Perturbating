@@ -9,7 +9,8 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4 // indirect
 	github.com/mrmorphic/hwio v0.0.0-20180519033216-11ea3f481a14 // indirect
-	golang.org/x/image v0.0.0-20210607152325-775e3b0c77b9 // indirect
+	golang.org/x/image v0.14.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
+	gonum.org/v1/gonum v0.15.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
