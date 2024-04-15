@@ -1,9 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"math"
-	"math/cmplx"
+	"math/rand"
 	"time"
 
 	"github.com/g3n/engine/app"
@@ -20,13 +19,14 @@ import (
 	"github.com/g3n/engine/util"
 	"github.com/g3n/engine/util/helper"
 	"github.com/g3n/engine/window"
+	"gonum.org/v1/gonum/stat"
 )
 
 func main() {
 	// Create application and scene
 	a := app.App()
 	scene := core.NewNode()
-	rater := util.NewFrameRater(60)
+	rater := util.NewFrameRater(6000)
 
 	// Set the scene to be managed by the gui manager
 	gui.Manager().Set(scene)
@@ -52,14 +52,15 @@ func main() {
 
 	// axis length
 	//TODO function call to set maxs
-	xLength := float64(10)
-	zLength := float64(10)
-	yLength := float64(10)
+	xLength := float64(15)
+	zLength := float64(1)
+	yLength := float64(15)
 
-	points, _ := genPoints(float64(time.Now().Unix()))
-	mats := plotPoints(scene, points)
+	//if max is 10 min is -5
 
 	createGraph(scene, xLength, zLength, yLength)
+	points := generateRandomCoords(10000, 0, xLength, 0, yLength, 0, 0)
+	mats, meshs := plotPoints(scene, points)
 
 	// Create and add lights to the scene
 	scene.Add(light.NewAmbient(&math32.Color{1.0, 1.0, 1.0}, 0.8))
@@ -73,7 +74,7 @@ func main() {
 	// Set background color to gray
 	a.Gls().ClearColor(0.5, 0.5, 0.5, 1.0)
 
-	//startTime := float64(time.Now().Unix())
+	t := 0.0
 	a.Run(func(rend *renderer.Renderer, deltaTime time.Duration) {
 		// Start measuring this frame
 		rater.Start()
@@ -87,11 +88,11 @@ func main() {
 			panic(err)
 		}
 
-		_, waveFunc := genPoints(float64(time.Now().Unix()))
-
-		vals := minMaxNormalize(waveFunc)
 		for i := 0; i < len(points); i++ {
-			mats[i].SetColor(GenerateColorOnGradient(vals[i]))
+			t = t + 1.0/10.0
+			val := calculateWaveFunction(points[i][0], points[i][1], t)
+			mats[i].SetColor(GenerateColorOnGradient((0 + val*(1))))
+			meshs[i].SetPosition(float32(points[i][0]), float32(val), float32(points[i][1]))
 		}
 
 		// Update GUI timers
@@ -100,6 +101,23 @@ func main() {
 		// Control and update FPS
 		rater.Wait()
 	})
+}
+
+func calculateWaveFunction(x, y, t float64) float64 {
+	// Constants for the infinite square well problem
+	a := 10.0          // width of the well
+	ny, nz := 1.0, 1.0 // quantum numbers for each dimension
+	v_0 := 6.0 * 10e-6 // potential energy of the well
+
+	realPartZ := 0.0
+	if x <= 10 && y <= 10 {
+		realPartZ = ((2.0/a)*math.Sin(nz*math.Pi*x/a)*math.Sin(ny*math.Pi*y/a) - 8.0*v_0)
+	}
+
+	// Combine the real and imaginary parts to get the full wave function
+	waveFunction := (realPartZ)
+
+	return waveFunction
 }
 
 func createGraph(scene *core.Node, xLength, zLength, yLength float64) {
@@ -123,20 +141,36 @@ func createGraph(scene *core.Node, xLength, zLength, yLength float64) {
 	scene.Add(meshY)
 }
 
-func plotPoints(scene *core.Node, points [][]float64) []*material.Standard {
+func plotPoints(scene *core.Node, points [][]float64) ([]*material.Standard, []*graphic.Mesh) {
 	var mats []*material.Standard
+	var meshs []*graphic.Mesh
 	for i := 0; i < len(points); i++ {
-		points[i] = NormalizeVals(points[i])
 		geom := geometry.NewCube(0.5)
 		//TODO This is the maths function call is meant to go we if the output here and assign colour
-		mat := material.NewStandard(math32.NewColor("Red"))
+		mat := material.NewStandard(math32.NewColor("DarkBlue"))
 		mats = append(mats, mat)
 		mesh := graphic.NewMesh(geom, mat)
+		meshs = append(meshs, mesh)
 		mesh.SetPosition(float32(points[i][0]), float32(points[i][2]), float32(points[i][1]))
 		scene.Add(mesh)
-		fmt.Println(float32(points[i][0]), float32(points[i][2]), float32(points[i][1]))
 	}
-	return mats
+	return mats, meshs
+}
+
+// generateRandomCoords generates random arrays of float64 within specified bounds
+func generateRandomCoords(numCoords int, minX, maxX, minY, maxY, minZ, maxZ float64) [][]float64 {
+	// Create the 2D array to store the random arrays
+	result := make([][]float64, numCoords)
+	r := rand.New(rand.NewSource(38))
+
+	// Generate random values for each array
+	for i := 0; i < numCoords; i++ {
+		result[i] = make([]float64, 3)
+		result[i][0] = minX + r.Float64()*(maxX-minX) // Random value for x
+		result[i][1] = minY + r.Float64()*(maxY-minY) // Random value for y
+		result[i][2] = minZ + r.Float64()*(maxZ-minZ) // Random value for z
+	}
+	return result
 }
 
 // GenerateColorOnGradient generates a color on a gradient from red to blue based on the input value (0 to 1)
@@ -155,118 +189,13 @@ func GenerateColorOnGradient(value float64) *math32.Color {
 
 	return &math32.Color{R: red, G: green, B: blue}
 }
-
-type quantumSystem struct {
-	quantumNumbers        [3]int
-	energy                float64
-	wellLength            float64
-	reducedPlanckConstant float64
-}
-
-type particle struct {
-	position [3]float64
-	mass     float64
-}
-
-func initialiseQuantumSystem(q *quantumSystem, p *particle) {
-	p.mass = 9.10938356e-31 // Electron mass
-	p.position = [3]float64{0.0, 0.0, 0.0}
-
-	q.reducedPlanckConstant = 1.0545718e-34 // Planck constant divided by 2π
-	q.wellLength = 10e-9                    // Further increase well length
-	q.quantumNumbers = [3]int{3, 3, 3}
-}
-
-func waveFunction(q *quantumSystem, p *particle, time float64) float64 {
-	waveFunctionValue := 0.0
-
-	// if any of the positions are outside the well, return 0
-	for i := 0; i < 3; i++ {
-		if p.position[i] < 0.0 || p.position[i] > q.wellLength {
-			// fmt.Printf("Position outside well, position = %.6e\n", p.position[i])
-			return waveFunctionValue
-		}
-	}
-
-	time = time * 1e-9 // Convert time to nanoseconds
-	q.energy = math.Pow(math.Pi*q.reducedPlanckConstant, 2) / (2 * p.mass * math.Pow(q.wellLength, 2))
-
-	quantumNumberSquareSum := 0
-	for i := 0; i < 3; i++ {
-		quantumNumberSquareSum += q.quantumNumbers[i] * q.quantumNumbers[i]
-	}
-
-	q.energy *= float64(quantumNumberSquareSum)
-
-	waveFunctionValue = 2.0 * math.Sqrt(8.0/math.Pow(q.wellLength, 3))
-	for i := 0; i < 3; i++ {
-		waveFunctionValue *= math.Sin(float64(q.quantumNumbers[i]) * math.Pi * p.position[i] / q.wellLength)
-	}
-
-	timeDependentFactor := cmplx.Exp(-1i * complex(q.energy*time/q.reducedPlanckConstant, 0))
-
-	return cmplx.Abs(complex(waveFunctionValue, 0) * timeDependentFactor)
-}
-
-func genPoints(t float64) ([][]float64, []float64) {
-	// define quantum system and particle
-	q := quantumSystem{}
-	p := particle{}
-
-	initialiseQuantumSystem(&q, &p)
-
-	gridLength := 10e-9 // Further increase spatial dimension
-	divisions := 10     // Keep divisions for larger step sizes
-
-	xStep := float64(q.wellLength) / float64(divisions)
-	yStep := xStep
-	zStep := xStep
-
-	var waveFuncs []float64
-	var coords [][]float64
-	for x := 0.0; x < float64(gridLength)+xStep; x += xStep {
-		for y := 0.0; y < float64(gridLength)+yStep; y += yStep {
-			for z := 0.0; z < float64(gridLength)+zStep; z += zStep {
-				p.position = [3]float64{x, y, z}
-				waveFunctionValue := waveFunction(&q, &p, t)
-				waveFuncs = append(waveFuncs, waveFunctionValue)
-				coord := []float64{x, y, z}
-				coords = append(coords, coord)
-			}
-		}
-	}
-	return coords, waveFuncs
-}
 func NormalizeVals(vals []float64) []float64 {
+	valsMean := stat.Mean(vals, nil)
+	valsStdDev := stat.StdDev(vals, nil)
 
-	var empty []float64
-
-	for i := 0; i < len(vals); i++ {
-		empty = append(empty, vals[i]*1000000000.0)
-	}
-	return empty
-}
-
-func minMaxNormalize(vals []float64) []float64 {
-	// Find the minimum and maximum values
-	minVal, maxVal := vals[0], vals[0]
-	for _, val := range vals {
-		if val < minVal {
-			minVal = val
-		}
-	}
-	for _, val := range vals {
-		if val > maxVal {
-			maxVal = val
-		}
-	}
-
-	// Create a new slice for the normalized values
 	normalizedVals := make([]float64, len(vals))
-
-	// Normalize the values
 	for i, val := range vals {
-		normalizedVals[i] = (val - minVal) / (maxVal - minVal)
+		normalizedVals[i] = (val - valsMean) / valsStdDev
 	}
 
 	return normalizedVals

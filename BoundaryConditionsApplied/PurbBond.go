@@ -27,7 +27,7 @@ func main() {
 	// Create application and scene
 	a := app.App()
 	scene := core.NewNode()
-	rater := util.NewFrameRater(60)
+	rater := util.NewFrameRater(6000)
 
 	// Set the scene to be managed by the gui manager
 	gui.Manager().Set(scene)
@@ -53,15 +53,15 @@ func main() {
 
 	// axis length
 	//TODO function call to set maxs
-	xLength := float64(15)
-	zLength := float64(15)
-	yLength := float64(15)
+	xLength := float64(12)
+	zLength := float64(1)
+	yLength := float64(12)
 
 	//if max is 10 min is -5
 
 	createGraph(scene, xLength, zLength, yLength)
-	points := generateRandomCoords(20000, 0, xLength, 0, yLength, 0, zLength)
-	mats := plotPoints(scene, points)
+	points := generateRandomCoords(10000, 0, xLength, 0, yLength, 0, 0)
+	mats, meshs := plotPoints(scene, points)
 
 	// Create and add lights to the scene
 	scene.Add(light.NewAmbient(&math32.Color{1.0, 1.0, 1.0}, 0.8))
@@ -75,7 +75,7 @@ func main() {
 	// Set background color to gray
 	a.Gls().ClearColor(0.5, 0.5, 0.5, 1.0)
 
-	//startTime := float64(time.Now().Unix())
+	t := 0.0
 	a.Run(func(rend *renderer.Renderer, deltaTime time.Duration) {
 		// Start measuring this frame
 		rater.Start()
@@ -89,13 +89,11 @@ func main() {
 			panic(err)
 		}
 
-		var vals []float64
 		for i := 0; i < len(points); i++ {
-			vals = append(vals, points[i][2])
-		}
-		vals = NormalizeVals(vals)
-		for i := 0; i < len(mats); i++ {
-			mats[i].SetColor(GenerateColorOnGradient((0 + vals[i]*(1))))
+			t = t + 1.0
+			val := calculateWaveFunction(points[i][0], points[i][1], t)
+			mats[i].SetColor(GenerateColorOnGradient((0 + real(val)*(1))))
+			meshs[i].SetPosition(float32(points[i][0]), float32(real(val)), float32(points[i][1]))
 		}
 
 		// Update GUI timers
@@ -106,20 +104,22 @@ func main() {
 	})
 }
 
-func calculateWaveFunction(x, y, z, t float64) complex128 {
+func calculateWaveFunction(x, y, t float64) complex128 {
 	// Constants for the infinite square well problem
-	a := 15.0                   // width of the well
-	nx, ny, nz := 3.0, 3.0, 3.0 // quantum numbers for each dimension
-	hbar := 1.0545718e-34       // reduced Planck's constant
-	m := 9.10938356e-31         // mass of the particle
+	a := 10.0             // width of the well
+	ny, nz := 1.0, 1.0    // quantum numbers for each dimension
+	hbar := 1.0545718e-34 // reduced Planck's constant
+	m := 9.10938356e-31   // mass of the particle
 
 	// Calculate the real part of the wave function for each dimension
-	realPartX := math.Sqrt(2/a) * math.Sin(nx*math.Pi*x/a)
-	realPartY := math.Sqrt(2/a) * math.Sin(ny*math.Pi*y/a)
-	realPartZ := math.Sqrt(2/a) * math.Sin(nz*math.Pi*z/a)
-
+	realPartX := x
+	realPartY := y
+	realPartZ := 0.0
+	if x <= 10 && y <= 10 {
+		realPartZ = 2 / a * math.Sin(nz*math.Pi*x/a) * math.Sin(ny*math.Pi*y/a) * math.Cos(t*math.Pi*math.Pi*hbar/(m*a*a))
+	}
 	// Calculate the imaginary part of the wave function
-	imaginaryPart := -1 * (nx*nx + ny*ny + nz*nz) * math.Pi * math.Pi * hbar * t / (2 * m * a * a)
+	imaginaryPart := -1 * math.Sin(math.Pi*math.Pi*hbar*t/(m*a*a))
 
 	// Combine the real and imaginary parts to get the full wave function
 	waveFunction := complex(realPartX*realPartY*realPartZ, 0) * cmplx.Exp(complex(0, imaginaryPart))
@@ -148,18 +148,20 @@ func createGraph(scene *core.Node, xLength, zLength, yLength float64) {
 	scene.Add(meshY)
 }
 
-func plotPoints(scene *core.Node, points [][]float64) []*material.Standard {
-	var Array []*material.Standard
+func plotPoints(scene *core.Node, points [][]float64) ([]*material.Standard, []*graphic.Mesh) {
+	var mats []*material.Standard
+	var meshs []*graphic.Mesh
 	for i := 0; i < len(points); i++ {
-		geom := geometry.NewCube(0.1)
+		geom := geometry.NewCube(0.5)
 		//TODO This is the maths function call is meant to go we if the output here and assign colour
 		mat := material.NewStandard(math32.NewColor("DarkBlue"))
-		Array = append(Array, mat)
+		mats = append(mats, mat)
 		mesh := graphic.NewMesh(geom, mat)
+		meshs = append(meshs, mesh)
 		mesh.SetPosition(float32(points[i][0]), float32(points[i][2]), float32(points[i][1]))
 		scene.Add(mesh)
 	}
-	return Array
+	return mats, meshs
 }
 
 // generateRandomCoords generates random arrays of float64 within specified bounds
